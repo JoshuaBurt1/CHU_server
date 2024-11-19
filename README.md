@@ -8,5 +8,5 @@
 2. Download Node.js
 3. In terminal: npm init -y
 4. In terminal: npm install express mongodb dotenv cors
-5. Add a .env file to the root folder containing: CONNECTION_STRING=mongodb+srv://{user}:{password}@CHU_database.gbih2ue.mongodb.net/CHU_database   //change the user and password to your connection string details
+5. Add a .env file to the root folder containing the MongoDB connection string obtained in Step 1: CONNECTION_STRING=mongodb+srv://{user}:{password}@CHU_database.gbih2ue.mongodb.net/CHU_database   //change the user and password to your connection string details
 6. Deploy this on a hosting service.
