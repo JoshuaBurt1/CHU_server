@@ -155,10 +155,14 @@ app.post('/heartrates', async (req, res) => {
         // Insert the new heart rate into the database
         const result = await collection.insertOne(newHeartRate);
 
-        res.status(201).send(`Heart rate recorded with ID: ${result.insertedId}`);
+        res.status(201).json({
+            message: 'Heart rate recorded successfully',
+            userId: result.insertedId // Return the insertedId instead of result.ops[0]
+        });
+
     } catch (error) {
         console.error('Error posting heart rate:', error);
-        res.status(500).send('Error posting heart rate');
+        res.status(500).json({ message: 'Internal Server Error', error: error.message, stack: error.stack });
     }
 });
 
