@@ -1,6 +1,6 @@
 # Camel Health Union (CHU) Server
 
-- This server code is paired with CHU_Android (Kotlin Android application)
+- This server code, CHU_server is paired with CHU_android (Kotlin Android application)
 - This server uses GET and POST to do CRUD operations in a MongoDB database
 
 - Initial setup:
