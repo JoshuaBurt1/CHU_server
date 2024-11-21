@@ -1,19 +1,30 @@
+//Procedural programming is used when this codebase initially executes a series of actions in a specific order.
+//First, it loads the Node.js modules: express, mongogb, dotenv, cors, and body-parser. These modules are necessary to run the proceeding code.
+//Next, dotenv.config() loads the MongoDB connection string.
+//An express application instance is created.
+//A port number is provided for localhost development.
+//...
+// Finally the home page url extension "/" get request runs, displaying all database information
+
+//REMOVE
+//Database Connection and Routes Execution: The procedural aspect of the code is most evident in the way it handles the sequence of operations, 
+//particularly the handling of incoming HTTP requests, database queries, and responses. 
+//Each endpoint (like app.get('/'), app.post('/users')) follows a procedural style by performing operations in sequence: validate input, interact with the database, 
+// and send a response.
+
 const express = require('express');
 const { MongoClient } = require('mongodb');
 const dotenv = require('dotenv'); // Import dotenv package
 const cors = require('cors'); // To handle CORS for cross-origin requests
 const bodyParser = require('body-parser'); // Middleware to parse JSON bodies
 
-dotenv.config(); // Load environment variables from .env file (only for local dev)
-
+dotenv.config(); 
 const app = express();
-const port = process.env.PORT || 3000; // Use the Render-provided port, or default to 3000 for local dev
+const port = process.env.PORT || 3000;
+app.use(cors()); // Use CORS to allow cross-origin requests (use more specific origins in production)
 
-// Use CORS to allow cross-origin requests (use more specific origins in production)
-app.use(cors());
-
-// Parse incoming requests with JSON payloads
-app.use(bodyParser.json());
+app.use(bodyParser.json()); // Parse incoming requests with JSON payloads
+app.use(express.json());
 
 // MongoDB connection URL from .env file or Render environment variable
 const uri = process.env.CONNECTION_STRING; // CONNECTION_STRING should be set in Render dashboard
@@ -47,7 +58,7 @@ app.get('/', async (req, res) => {
 
         // Send the response with database name and collection contents
         res.json({
-            message: `Welcome to the Camel Health Union server`,
+            message: `Welcome to the Camel Health Union server \n\n`,
             database: databaseName,
             collections: collectionsData
         });
@@ -81,65 +92,66 @@ app.get('/heartrates', async (req, res) => {
     }
 });
 
-// Test POST to create a user and heart rate
-/*
-app.post('/test-post', async (req, res) => {
-    try {
-        // Example user and heart rate data to be inserted
-        const user = {
-            username: "testuser-ERROR",
-            email: "testuser@example.com",
-            password: "password123"
-        };
-
-        const heartRate = {
-            userId: "testuser",
-            rate: 72,
-            timestamp: new Date().toISOString()
-        };
-
-        // Insert the user into the database
-        const userResult = await db.collection('users').insertOne(user);
-
-        // Insert the heart rate into the database
-        const heartRateResult = await db.collection('heartrates').insertOne(heartRate);
-
-        // Respond with success
-        res.status(201).json({
-            message: 'User and heart rate successfully posted',
-            userId: userResult.insertedId,  // Correctly use insertedId
-            heartRateId: heartRateResult.insertedId  // Correctly use insertedId
-        });
-    } catch (error) {
-        console.error('Error during test post:', error); // Log the error
-        res.status(500).json({ message: 'Error during test post', error: error.message });
-    }
-});*/
-
 // Endpoint to post a new user to the "users" collection
 app.post('/users', async (req, res) => {
     try {
+        console.log('Received user data:', req.body);  // Log incoming data
+
         const user = req.body; // The data from the client
         const collection = db.collection('users'); // Access the "users" collection
 
         // Validate the user data
-        if (!user.username || !user.email || !user.password) {
-            return res.status(400).json({ message: 'Missing required fields (username, email, password)' });
+        if (!user.username || !user.password || !user.clientId || !user.fitbitAccessToken || 
+            !user.age || !user.gender || !user.height || !user.weight || !user.memberSince || !user.averageDailySteps) {
+            return res.status(400).json({ message: 'Missing required fields' });
         }
 
-        // Insert the new user into the database
-        const result = await collection.insertOne(user);
+        // Check if a user already exists with the same username and password
+        const existingUser = await collection.findOne({ username: user.username, password: user.password });
 
-        // Respond with the created user and success message
-        res.status(201).json({
-            message: 'User created successfully',
-            userId: result.insertedId // Return the insertedId instead of result.ops[0]
-        });
+        if (existingUser) {
+            // User found, update the user record with the new data
+            const updateResult = await collection.updateOne(
+                { username: user.username, password: user.password }, // Filter by username and password
+                {
+                    $set: {
+                        age: user.age,
+                        gender: user.gender,
+                        height: user.height,
+                        weight: user.weight,
+                        memberSince: user.memberSince,
+                        averageDailySteps: user.averageDailySteps,
+                        fitbitAccessToken: user.fitbitAccessToken,
+                        clientId: user.clientId
+                    }
+                }
+            );
+
+            console.log('Update result:', updateResult);  // Log the result of the update
+
+            // Respond with the updated user information
+            res.status(200).json({
+                message: 'User updated successfully',
+                userId: existingUser._id // Return the existing user ID
+            });
+        } else {
+            // No existing user found, insert a new user
+            const insertResult = await collection.insertOne(user);
+            console.log('Insertion result:', insertResult);  // Log the result of the insertion
+
+            // Respond with the created user and success message
+            res.status(201).json({
+                message: 'User created successfully',
+                userId: insertResult.insertedId // Return the inserted ID
+            });
+        }
+
     } catch (error) {
         console.error('Error posting user:', error); // Log the full error
         res.status(500).json({ message: 'Internal Server Error', error: error.message, stack: error.stack });
     }
 });
+
 
 // Endpoint to post a new heart rate to the "heartrates" collection
 app.post('/heartrates', async (req, res) => {
